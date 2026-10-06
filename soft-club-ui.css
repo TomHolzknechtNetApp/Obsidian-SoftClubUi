@@ -1,0 +1,1339 @@
+/* ==========================================================================
+   Soft Club UI for Obsidian
+   --------------------------------------------------------------------------
+   CSS snippet that ports the Soft Club UI design system
+   (https://github.com/cobanov/soft-club-ui, MIT) to Obsidian: dark glass,
+   phosphor green, cold blue, warm-orange hover, thin technical borders,
+   low radii and CRT scanlines.
+
+   Source mapping (Soft Club component -> Obsidian element)
+     tokens/soft-club.css  -> Obsidian theme variables + 4 palettes
+     docs html backdrop    -> editor pane backdrop (grid + glow)
+     docs body::before     -> CRT scanline overlay
+     Card / GlassPanel     -> modals, command palette, menus, popovers, notices
+     Button                -> buttons (default / mod-cta / mod-warning)
+     Input / Checkbox      -> text fields, dropdowns, task checkboxes
+     Switch                -> settings toggles
+     Badge                 -> tags
+     Tabs                  -> workspace tabs, settings tabs, active file
+     Alert                 -> callouts (scanlines + animated data line)
+     MockConsole           -> code blocks (console bar + token colors)
+     Table / Kbd / Separator / Progress / ScrollArea / Tooltip
+     GlassPanel kicker     -> H6 headings, GradientText -> H1 (optional)
+
+   Works on top of any theme, including Things. By default the snippet is
+   active in dark mode only. See "Also apply in light mode" in Style Settings.
+
+   Specificity contract with Style Settings
+     - Editable tokens (--sc-*) are declared on `body` (0,0,1) so the values
+       Style Settings writes to `body.css-settings-manager` (0,1,1) win.
+     - Palettes use `body:where(...)` (0,0,1) for the same reason.
+     - Obsidian variables and element rules live under the scope
+       `body:is(.theme-dark, .sc-everywhere):not(.sc-off)` (0,2,1), which
+       beats theme rules such as `.theme-dark` / `body.theme-dark.is-mobile`.
+   ========================================================================== */
+
+/* @settings
+name: Soft Club UI
+id: soft-club-ui
+settings:
+    -
+        id: sc-info
+        title: About
+        title.de: "Über"
+        type: info-text
+        markdown: true
+        description: "Port of the [Soft Club UI](https://github.com/cobanov/soft-club-ui) design system. The snippet is active in **dark mode**. The color pickers below override the selected palette. To go back to the palette value, click the reset arrow."
+        description.de: "Portierung des Designsystems [Soft Club UI](https://github.com/cobanov/soft-club-ui). Das Snippet ist im **dunklen Modus** aktiv. Die Farbwähler unten überschreiben die gewählte Palette. Mit dem Pfeil zum Zurücksetzen gilt wieder der Wert der Palette."
+    -
+        id: sc-off
+        title: Disable Soft Club UI
+        title.de: "Soft Club UI ausschalten"
+        description: Turns off the full snippet. The snippet stays enabled in Appearance.
+        description.de: "Schaltet das ganze Snippet aus. Das Snippet bleibt unter Darstellung aktiviert."
+        type: class-toggle
+        default: false
+        addCommand: true
+    -
+        id: sc-everywhere
+        title: Also apply in light mode
+        title.de: "Auch im hellen Modus anwenden"
+        description: Soft Club is a dark design. If this toggle is on, the snippet also applies in light mode.
+        description.de: "Soft Club ist ein dunkles Design. Ist der Schalter an, gilt das Snippet auch im hellen Modus."
+        type: class-toggle
+        default: false
+    -
+        id: sc-heading-palette
+        title: Palette
+        title.de: "Palette"
+        type: heading
+        level: 2
+        collapsed: false
+    -
+        id: sc-palette
+        title: Palette
+        title.de: "Palette"
+        description: The four themes that ship with Soft Club UI.
+        description.de: "Die vier Themes aus Soft Club UI."
+        type: class-select
+        allowEmpty: false
+        default: sc-palette-green
+        options:
+            -
+                label: Green (phosphor, default)
+                value: sc-palette-green
+            -
+                label: Blue (cold cyan)
+                value: sc-palette-blue
+            -
+                label: Orange (amber)
+                value: sc-palette-orange
+            -
+                label: Night City (petrol and HUD red)
+                value: sc-palette-night-city
+    -
+        id: sc-hover
+        title: Hover accent
+        title.de: "Hover-Akzent"
+        description: Soft Club tints hovered items warm orange. If you prefer a different tint, select a different accent.
+        description.de: "Soft Club färbt Elemente unter dem Mauszeiger warm orange. Für eine andere Tönung wähle einen anderen Akzent."
+        type: class-select
+        allowEmpty: false
+        default: sc-hover-warm
+        options:
+            -
+                label: Warm (Soft Club default)
+                value: sc-hover-warm
+            -
+                label: Primary
+                value: sc-hover-primary
+            -
+                label: Neutral
+                value: sc-hover-neutral
+    -
+        id: sc-heading-colors
+        title: Colors (override palette)
+        title.de: "Farben (überschreiben die Palette)"
+        type: heading
+        level: 2
+        collapsed: true
+    -
+        id: sc-bg
+        title: Background
+        title.de: "Hintergrund"
+        type: variable-color
+        format: hex
+        opacity: false
+        default: '#050706'
+    -
+        id: sc-bg-soft
+        title: Background soft
+        title.de: "Hintergrund weich"
+        description: Sidebars, ribbon, title bar.
+        description.de: "Seitenleisten, Ribbon, Titelleiste."
+        type: variable-color
+        format: hex
+        opacity: false
+        default: '#0a1110'
+    -
+        id: sc-surface-color
+        title: Glass surface
+        title.de: "Glasfläche"
+        description: Base color of cards and code blocks (used at 74% opacity).
+        description.de: "Grundfarbe von Karten und Codeblöcken (mit 74% Deckkraft)."
+        type: variable-color
+        format: hex
+        opacity: false
+        default: '#0d1613'
+    -
+        id: sc-raised-color
+        title: Raised glass surface
+        title.de: "Erhöhte Glasfläche"
+        description: Menus, modals, popovers (used at 78% opacity).
+        description.de: "Menüs, Dialoge, Popovers (mit 78% Deckkraft)."
+        type: variable-color
+        format: hex
+        opacity: false
+        default: '#192a24'
+    -
+        id: sc-inset-color
+        title: Inset surface
+        title.de: "Vertiefte Fläche"
+        description: Inline code, form fields.
+        description.de: "Inline-Code, Eingabefelder."
+        type: variable-color
+        format: hex
+        opacity: false
+        default: '#040908'
+    -
+        id: sc-text
+        title: Text
+        title.de: "Text"
+        type: variable-color
+        format: hex
+        opacity: false
+        default: '#eef6ee'
+    -
+        id: sc-text-muted
+        title: Text muted
+        title.de: "Text gedämpft"
+        type: variable-color
+        format: hex
+        opacity: false
+        default: '#a9b9ae'
+    -
+        id: sc-text-subtle
+        title: Text subtle
+        title.de: "Text dezent"
+        type: variable-color
+        format: hex
+        opacity: false
+        default: '#74867b'
+    -
+        id: sc-primary
+        title: Primary accent
+        title.de: "Primärer Akzent"
+        description: Soft Club "accent green". Links, active tab, checkboxes, CTA buttons.
+        description.de: "„Accent green“ von Soft Club. Links, aktiver Tab, Checkboxen, CTA-Buttons."
+        type: variable-color
+        format: hex
+        opacity: false
+        default: '#8effad'
+    -
+        id: sc-secondary
+        title: Secondary accent
+        title.de: "Sekundärer Akzent"
+        description: Soft Club "accent blue". External links, tags, keywords.
+        description.de: "„Accent blue“ von Soft Club. Externe Links, Tags, Keywords."
+        type: variable-color
+        format: hex
+        opacity: false
+        default: '#8bb8d7'
+    -
+        id: sc-warm
+        title: Warm (hover tint)
+        title.de: "Warm (Hover-Tönung)"
+        type: variable-color
+        format: hex
+        opacity: false
+        default: '#ff8a3d'
+    -
+        id: sc-warning
+        title: Warning
+        title.de: "Warnung"
+        description: Text color on hover, numbers in code.
+        description.de: "Textfarbe unter dem Mauszeiger, Zahlen im Code."
+        type: variable-color
+        format: hex
+        opacity: false
+        default: '#ff8a3d'
+    -
+        id: sc-danger
+        title: Danger
+        title.de: "Gefahr"
+        type: variable-color
+        format: hex
+        opacity: false
+        default: '#f06a54'
+    -
+        id: sc-panel
+        title: Panel tint
+        title.de: "Panel-Tönung"
+        description: Light tint used for faint fills on outline buttons, tables, kbd.
+        description.de: "Helle Tönung für schwache Flächen auf Outline-Buttons, Tabellen und Tastenkürzeln."
+        type: variable-color
+        format: hex
+        opacity: false
+        default: '#e1ffed'
+    -
+        id: sc-border-color
+        title: Border color
+        title.de: "Rahmenfarbe"
+        type: variable-color
+        format: hex
+        opacity: false
+        default: '#aeffd2'
+    -
+        id: sc-border-alpha
+        title: Border strength
+        title.de: "Rahmenstärke"
+        type: variable-number-slider
+        default: 24
+        min: 5
+        max: 80
+        step: 1
+        format: '%'
+    -
+        id: sc-border-strong-alpha
+        title: Strong border strength
+        title.de: "Starke Rahmenstärke"
+        description: Modals, menus, outline buttons, hovered fields.
+        description.de: "Dialoge, Menüs, Outline-Buttons, Felder unter dem Mauszeiger."
+        type: variable-number-slider
+        default: 46
+        min: 10
+        max: 100
+        step: 1
+        format: '%'
+    -
+        id: sc-heading-type
+        title: Typography
+        title.de: "Typografie"
+        type: heading
+        level: 2
+        collapsed: true
+    -
+        id: sc-font-sans
+        title: Sans font
+        title.de: "Serifenlose Schrift"
+        description: If Space Grotesk is installed on the computer, Obsidian uses the local font. If not, Obsidian loads it from Google Fonts.
+        description.de: "Ist Space Grotesk auf dem Computer installiert, nutzt Obsidian die lokale Schrift. Sonst lädt Obsidian sie von Google Fonts."
+        type: variable-text
+        default: '"Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif'
+    -
+        id: sc-font-mono
+        title: Mono font
+        title.de: "Monospace-Schrift"
+        type: variable-text
+        default: '"JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace'
+    -
+        id: sc-force-fonts
+        title: Override fonts set in Appearance
+        title.de: "Schriften aus der Darstellung überschreiben"
+        description: Uses the Soft Club fonts also when Settings > Appearance sets a custom text, interface, or code font.
+        description.de: "Nutzt die Soft-Club-Schriften auch dann, wenn Einstellungen > Darstellung eine eigene Schrift setzt."
+        type: class-toggle
+        default: true
+    -
+        id: sc-h6-kicker
+        title: H6 as mono "kicker" label
+        title.de: "H6 als Mono-Label („Kicker“)"
+        description: Small green mono label, like the GlassPanel kicker.
+        description.de: "Kleines grünes Mono-Label wie der Kicker im GlassPanel."
+        type: class-toggle
+        default: true
+    -
+        id: sc-h1-gradient
+        title: H1 and note title as gradient text
+        title.de: "H1 und Notiztitel als Verlaufstext"
+        description: Text to primary to secondary gradient (GradientText component).
+        description.de: "Verlauf von Text über Primär zu Sekundär (Komponente GradientText)."
+        type: class-toggle
+        default: false
+    -
+        id: sc-mono-statusbar
+        title: Mono status bar
+        title.de: "Statusleiste in Monospace"
+        type: class-toggle
+        default: true
+    -
+        id: sc-heading-shape
+        title: Shape and glass
+        title.de: "Form und Glas"
+        type: heading
+        level: 2
+        collapsed: true
+    -
+        id: sc-radius-1
+        title: Radius small
+        title.de: "Radius klein"
+        description: Tags, checkboxes, kbd, menu items.
+        description.de: "Tags, Checkboxen, Tastenkürzel, Menüeinträge."
+        type: variable-number-slider
+        default: 2
+        min: 0
+        max: 12
+        step: 1
+        format: px
+    -
+        id: sc-radius-2
+        title: Radius medium
+        title.de: "Radius mittel"
+        description: Buttons, fields, callouts, tables.
+        description.de: "Buttons, Felder, Callouts, Tabellen."
+        type: variable-number-slider
+        default: 4
+        min: 0
+        max: 16
+        step: 1
+        format: px
+    -
+        id: sc-radius-3
+        title: Radius large
+        title.de: "Radius groß"
+        description: Cards, modals, menus, code blocks.
+        description.de: "Karten, Dialoge, Menüs, Codeblöcke."
+        type: variable-number-slider
+        default: 6
+        min: 0
+        max: 20
+        step: 1
+        format: px
+    -
+        id: sc-glass-blur
+        title: Glass blur
+        title.de: "Glas-Unschärfe"
+        type: variable-number-slider
+        default: 18
+        min: 0
+        max: 40
+        step: 1
+        format: px
+    -
+        id: sc-heading-atmosphere
+        title: Atmosphere
+        title.de: "Atmosphäre"
+        type: heading
+        level: 2
+        collapsed: true
+    -
+        id: sc-backdrop
+        title: Editor backdrop
+        title.de: "Editor-Hintergrund"
+        description: Technical grid and soft primary/secondary glow behind notes.
+        description.de: "Technisches Raster und weiches Leuchten hinter den Notizen."
+        type: class-toggle
+        default: true
+    -
+        id: sc-grid-size
+        title: Backdrop grid row height
+        title.de: "Zeilenhöhe des Rasters"
+        type: variable-number-slider
+        default: 24
+        min: 8
+        max: 64
+        step: 1
+        format: px
+    -
+        id: sc-scanlines
+        title: CRT scanline overlay
+        title.de: "CRT-Scanlines über dem Fenster"
+        description: Fine horizontal lines over the whole window.
+        description.de: "Feine horizontale Linien über dem ganzen Fenster."
+        type: class-toggle
+        default: true
+    -
+        id: sc-scanline-opacity
+        title: Scanline overlay intensity
+        title.de: "Stärke der Scanlines"
+        type: variable-number-slider
+        default: 0.28
+        min: 0.05
+        max: 1
+        step: 0.01
+    -
+        id: sc-surface-scanlines
+        title: Scanlines on glass surfaces
+        title.de: "Scanlines auf Glasflächen"
+        description: Modals, menus, popovers, notices and code blocks.
+        description.de: "Dialoge, Menüs, Popovers, Hinweise und Codeblöcke."
+        type: class-toggle
+        default: true
+    -
+        id: sc-heading-modules
+        title: Components
+        title.de: "Komponenten"
+        type: heading
+        level: 2
+        collapsed: true
+    -
+        id: sc-mod-glass
+        title: Glass surfaces
+        title.de: "Glasflächen"
+        description: Modals, command palette, menus, popovers, suggestions, notices, tooltips.
+        description.de: "Dialoge, Befehlspalette, Menüs, Popovers, Vorschläge, Hinweise, Tooltips."
+        type: class-toggle
+        default: true
+    -
+        id: sc-mod-buttons
+        title: Buttons
+        title.de: "Buttons"
+        type: class-toggle
+        default: true
+    -
+        id: sc-mod-switches
+        title: Switches
+        title.de: "Schalter"
+        description: Settings toggles as Soft Club Switch.
+        description.de: "Schalter in den Einstellungen im Stil von Soft Club."
+        type: class-toggle
+        default: true
+    -
+        id: sc-mod-tabs
+        title: Tabs
+        title.de: "Tabs"
+        description: Flat tabs with a primary underline on the active tab.
+        description.de: "Flache Tabs mit primärer Unterstreichung am aktiven Tab."
+        type: class-toggle
+        default: true
+    -
+        id: sc-mod-nav
+        title: Active file marker
+        title.de: "Markierung der aktiven Datei"
+        description: Primary edge on the active file and settings tab.
+        description.de: "Primäre Kante an der aktiven Datei und am aktiven Einstellungs-Tab."
+        type: class-toggle
+        default: true
+    -
+        id: sc-mod-tags
+        title: Tags as badges
+        title.de: "Tags als Badges"
+        description: Mono, uppercase, bordered tags.
+        description.de: "Tags in Monospace, in Großbuchstaben und mit Rahmen."
+        type: class-toggle
+        default: true
+    -
+        id: sc-mod-callouts
+        title: Callouts as alerts
+        title.de: "Callouts als Alerts"
+        description: Neutral border, scanline fill, and a colored data line at the bottom.
+        description.de: "Neutraler Rahmen, Scanline-Füllung und eine farbige Datenlinie unten."
+        type: class-toggle
+        default: true
+    -
+        id: sc-callout-motion
+        title: Animate callout data line
+        title.de: "Datenlinie der Callouts animieren"
+        description: The animation stops when the system setting "reduce motion" is on.
+        description.de: "Die Animation stoppt, wenn die Systemeinstellung „Bewegung reduzieren“ an ist."
+        type: class-toggle
+        default: true
+    -
+        id: sc-mod-code
+        title: Code blocks as console
+        title.de: "Codeblöcke als Konsole"
+        description: Glass frame with a console bar that shows the language (reading view).
+        description.de: "Glasrahmen mit Konsolenleiste, die die Sprache zeigt (Lesemodus)."
+        type: class-toggle
+        default: true
+    -
+        id: sc-mod-tables
+        title: Tables
+        title.de: "Tabellen"
+        description: Mono uppercase headers, row lines only, warm row hover.
+        description.de: "Kopfzeilen in Monospace und Großbuchstaben, nur Zeilenlinien, warme Tönung unter dem Mauszeiger."
+        type: class-toggle
+        default: true
+    -
+        id: sc-mod-properties
+        title: Properties as glass panel
+        title.de: "Eigenschaften als Glaspanel"
+        type: class-toggle
+        default: true
+    -
+        id: sc-mod-misc
+        title: Kbd, separator, progress bar
+        title.de: "Tastenkürzel, Trennlinie, Fortschrittsbalken"
+        type: class-toggle
+        default: true
+*/
+
+/* --------------------------------------------------------------------------
+   Fonts: a local installation wins. Else the font loads from Google Fonts
+   (only when used). Offline without a local copy -> fallback stack.
+   -------------------------------------------------------------------------- */
+@font-face {
+  font-display: swap;
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 400;
+  src: local("Space Grotesk"), local("SpaceGrotesk-Regular"), url("https://fonts.gstatic.com/s/spacegrotesk/v22/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj7oUUsj.ttf") format("truetype");
+}
+
+@font-face {
+  font-display: swap;
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 500;
+  src: local("Space Grotesk Medium"), local("SpaceGrotesk-Medium"), url("https://fonts.gstatic.com/s/spacegrotesk/v22/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj7aUUsj.ttf") format("truetype");
+}
+
+@font-face {
+  font-display: swap;
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 700;
+  src: local("Space Grotesk Bold"), local("SpaceGrotesk-Bold"), url("https://fonts.gstatic.com/s/spacegrotesk/v22/V8mQoQDjQSkFtoMM3T6r8E7mF71Q-gOoraIAEj4PVksj.ttf") format("truetype");
+}
+
+@font-face {
+  font-display: swap;
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  src: local("JetBrains Mono"), local("JetBrainsMono-Regular"), url("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxjPQ.ttf") format("truetype");
+}
+
+@font-face {
+  font-display: swap;
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 500;
+  src: local("JetBrains Mono Medium"), local("JetBrainsMono-Medium"), url("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8-qxjPQ.ttf") format("truetype");
+}
+
+@font-face {
+  font-display: swap;
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 700;
+  src: local("JetBrains Mono Bold"), local("JetBrainsMono-Bold"), url("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8L6tjPQ.ttf") format("truetype");
+}
+
+@keyframes sc-alert-line {
+  0% { background-position: -30% 0, 0 0; }
+  100% { background-position: 130% 0, 0 0; }
+}
+
+/* --------------------------------------------------------------------------
+   1. Editable tokens (green palette defaults) -- low specificity on purpose
+   -------------------------------------------------------------------------- */
+body {
+  --sc-bg: #050706;
+  --sc-bg-soft: #0a1110;
+  --sc-surface-color: #0d1613;
+  --sc-raised-color: #192a24;
+  --sc-inset-color: #040908;
+  --sc-text: #eef6ee;
+  --sc-text-muted: #a9b9ae;
+  --sc-text-subtle: #74867b;
+  --sc-primary: #8effad;
+  --sc-secondary: #8bb8d7;
+  --sc-warm: #ff8a3d;
+  --sc-warning: #ff8a3d;
+  --sc-danger: #f06a54;
+  --sc-panel: #e1ffed;
+  --sc-border-color: #aeffd2;
+  --sc-border-alpha: 24%;
+  --sc-border-strong-alpha: 46%;
+
+  --sc-font-sans: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --sc-font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  --sc-radius-1: 2px;
+  --sc-radius-2: 4px;
+  --sc-radius-3: 6px;
+  --sc-glass-blur: 18px;
+  --sc-grid-size: 24px;
+  --sc-scanline-opacity: 0.28;
+}
+
+/* Palettes from tokens/soft-club.css ([data-sc-theme="..."]) */
+body:where(.sc-palette-blue) {
+  --sc-bg: #04070d;
+  --sc-bg-soft: #07111d;
+  --sc-surface-color: #0b1728;
+  --sc-raised-color: #162d46;
+  --sc-inset-color: #03080e;
+  --sc-text: #eef8ff;
+  --sc-text-muted: #a7bed2;
+  --sc-text-subtle: #718aa0;
+  --sc-primary: #87f2e6;
+  --sc-secondary: #7ebcff;
+  --sc-warm: #ffd16a;
+  --sc-warning: #ffd16a;
+  --sc-danger: #ff756c;
+  --sc-panel: #e8f7ff;
+  --sc-border-color: #8bc6ff;
+  --sc-border-alpha: 26%;
+  --sc-border-strong-alpha: 48%;
+}
+
+body:where(.sc-palette-orange) {
+  --sc-bg: #0b0300;
+  --sc-bg-soft: #170704;
+  --sc-surface-color: #230c04;
+  --sc-raised-color: #421805;
+  --sc-inset-color: #0e0502;
+  --sc-text: #fff4e7;
+  --sc-text-muted: #d7b393;
+  --sc-text-subtle: #a2714b;
+  --sc-primary: #ff9a20;
+  --sc-secondary: #ffd27a;
+  --sc-warm: #ffcf35;
+  --sc-warning: #ffcf35;
+  --sc-danger: #ff6b35;
+  --sc-panel: #ffeed4;
+  --sc-border-color: #ff9123;
+  --sc-border-alpha: 28%;
+  --sc-border-strong-alpha: 50%;
+}
+
+body:where(.sc-palette-night-city) {
+  --sc-bg: #171019;
+  --sc-bg-soft: #1c1422;
+  --sc-surface-color: #15313f;
+  --sc-raised-color: #1e4050;
+  --sc-inset-color: #09060d;
+  --sc-text: #eaf6f4;
+  --sc-text-muted: #9fb4b4;
+  --sc-text-subtle: #b09194;
+  --sc-primary: #a1eae3;
+  --sc-secondary: #5eb3af;
+  --sc-warm: #d22348;
+  --sc-warning: #ff6b8a;
+  --sc-danger: #d22348;
+  --sc-panel: #d1f0ec;
+  --sc-border-color: #a1eae3;
+  --sc-border-alpha: 22%;
+  --sc-border-strong-alpha: 46%;
+}
+
+/* --------------------------------------------------------------------------
+   2. Derived tokens (follow whatever the editable tokens resolve to)
+   -------------------------------------------------------------------------- */
+body {
+  --sc-surface: color-mix(in srgb, var(--sc-surface-color) 74%, transparent);
+  --sc-surface-raised: color-mix(in srgb, var(--sc-raised-color) 78%, transparent);
+  --sc-surface-muted: color-mix(in srgb, color-mix(in srgb, var(--sc-raised-color), var(--sc-panel) 18%) 42%, transparent);
+  --sc-surface-inset: color-mix(in srgb, var(--sc-inset-color) 72%, transparent);
+  --sc-field: color-mix(in srgb, var(--sc-inset-color) 62%, transparent);
+  --sc-overlay: color-mix(in srgb, var(--sc-bg) 74%, transparent);
+  --sc-on-accent: color-mix(in srgb, var(--sc-bg) 86%, var(--sc-primary));
+
+  --sc-primary-soft: color-mix(in srgb, var(--sc-primary) 18%, transparent);
+  --sc-secondary-soft: color-mix(in srgb, var(--sc-secondary) 18%, transparent);
+  --sc-warning-soft: color-mix(in srgb, var(--sc-warning) 18%, transparent);
+  --sc-danger-soft: color-mix(in srgb, var(--sc-danger) 18%, transparent);
+  --sc-focus: color-mix(in srgb, var(--sc-primary) 44%, transparent);
+
+  --sc-border-c: color-mix(in srgb, var(--sc-border-color) var(--sc-border-alpha), transparent);
+  --sc-border-strong-c: color-mix(in srgb, var(--sc-border-color) var(--sc-border-strong-alpha), transparent);
+  --sc-border: 1px solid var(--sc-border-c);
+  --sc-border-strong: 1px solid var(--sc-border-strong-c);
+
+  --sc-shadow-1: 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 24px rgba(0, 0, 0, 0.22);
+  --sc-shadow-2: 0 1px 0 rgba(255, 255, 255, 0.07), 0 18px 42px rgba(0, 0, 0, 0.34);
+  --sc-shadow-inset: inset 0 1px 0 color-mix(in srgb, var(--sc-panel) 12%, transparent), inset 0 -1px 0 rgba(0, 0, 0, 0.34);
+
+  --sc-font-size-1: 0.6875rem;
+  --sc-font-size-2: 0.75rem;
+  --sc-font-size-3: 0.875rem;
+  --sc-font-size-5: 1.1875rem;
+  --sc-line-height-tight: 1.12;
+  --sc-ease: cubic-bezier(0.2, 0, 0, 1);
+  --sc-fast: 120ms;
+
+  /* Card top highlight + optional surface scanlines (image layers) */
+  --sc-top-glow: linear-gradient(90deg, transparent, color-mix(in srgb, var(--sc-primary) 24%, transparent), transparent) top / 100% 1px no-repeat;
+  --sc-scan-surface: linear-gradient(transparent, transparent);
+
+  /* Hover accent (class-select) */
+  --sc-hover: var(--sc-warm);
+  --sc-hover-text: var(--sc-warning);
+}
+
+body:where(.sc-surface-scanlines) {
+  --sc-scan-surface: repeating-linear-gradient(0deg,
+    color-mix(in srgb, var(--sc-text) 5.5%, transparent) 0,
+    color-mix(in srgb, var(--sc-text) 5.5%, transparent) 1px,
+    transparent 1px,
+    transparent 3px);
+}
+
+body:where(.sc-hover-primary) {
+  --sc-hover: var(--sc-primary);
+  --sc-hover-text: var(--sc-primary);
+}
+
+body:where(.sc-hover-neutral) {
+  --sc-hover: var(--sc-panel);
+  --sc-hover-text: var(--sc-text);
+}
+
+/* --------------------------------------------------------------------------
+   3. Obsidian variables + components (scope: dark mode, or forced)
+   -------------------------------------------------------------------------- */
+body:is(.theme-dark, .sc-everywhere):not(.sc-off) {
+  color-scheme: dark;
+
+  /* Accent used by Obsidian internals that read --accent-h/s/l */
+  --accent-h: 137;
+  --accent-s: 100%;
+  --accent-l: 78%;
+  &.sc-palette-blue { --accent-h: 173; --accent-s: 80%; --accent-l: 74%; }
+  &.sc-palette-orange { --accent-h: 33; --accent-s: 100%; --accent-l: 56%; }
+  &.sc-palette-night-city { --accent-h: 174; --accent-s: 63%; --accent-l: 77%; }
+
+  /* Backgrounds */
+  --background-primary: var(--sc-bg);
+  --background-primary-alt: var(--sc-bg-soft);
+  --background-secondary: var(--sc-bg-soft);
+  --background-secondary-alt: color-mix(in srgb, var(--sc-bg-soft), var(--sc-panel) 4%);
+  --background-modifier-border: var(--sc-border-c);
+  --background-modifier-border-hover: var(--sc-border-strong-c);
+  --background-modifier-border-focus: var(--sc-focus);
+  --background-modifier-hover: color-mix(in srgb, var(--sc-hover) 10%, transparent);
+  --background-modifier-active-hover: color-mix(in srgb, var(--sc-primary) 14%, transparent);
+  --background-modifier-form-field: var(--sc-field);
+  --background-modifier-form-field-highlighted: var(--sc-surface-inset);
+  --background-modifier-cover: var(--sc-overlay);
+  --background-modifier-message: color-mix(in srgb, var(--sc-inset-color) 96%, transparent);
+  --background-modifier-error: var(--sc-danger);
+  --background-modifier-error-hover: color-mix(in srgb, var(--sc-danger), white 12%);
+  --background-modifier-success: var(--sc-primary);
+
+  /* Text */
+  --text-normal: var(--sc-text);
+  --text-muted: var(--sc-text-muted);
+  --text-faint: var(--sc-text-subtle);
+  --text-on-accent: var(--sc-on-accent);
+  --text-on-accent-inverted: var(--sc-on-accent);
+  --text-accent: var(--sc-primary);
+  --text-accent-hover: var(--sc-hover-text);
+  --text-error: var(--sc-danger);
+  --text-warning: var(--sc-warning);
+  --text-success: var(--sc-primary);
+  --text-selection: color-mix(in srgb, var(--sc-primary) 22%, transparent);
+  --text-highlight-bg: color-mix(in srgb, var(--sc-warm) 26%, transparent);
+  --text-highlight-bg-active: color-mix(in srgb, var(--sc-warm) 42%, transparent);
+  --caret-color: var(--sc-primary);
+
+  /* Accent / interactive */
+  --color-accent: var(--sc-primary);
+  --color-accent-1: color-mix(in srgb, var(--sc-primary), white 14%);
+  --color-accent-2: color-mix(in srgb, var(--sc-primary), white 26%);
+  --interactive-normal: var(--sc-surface-raised);
+  --interactive-hover: color-mix(in srgb, var(--sc-raised-color), var(--sc-panel) 8%);
+  --interactive-accent: var(--sc-primary);
+  --interactive-accent-hover: color-mix(in srgb, var(--sc-primary), white 14%);
+
+  /* Icons */
+  --icon-color: var(--sc-text-muted);
+  --icon-color-hover: var(--sc-hover-text);
+  --icon-color-active: var(--sc-primary);
+  --icon-color-focused: var(--sc-text);
+
+  /* Fonts */
+  --font-interface-theme: var(--sc-font-sans);
+  --font-text-theme: var(--sc-font-sans);
+  --font-monospace-theme: var(--sc-font-mono);
+
+  /* Shape */
+  --radius-s: var(--sc-radius-2);
+  --radius-m: var(--sc-radius-3);
+  --radius-l: var(--sc-radius-3);
+  --radius-xl: calc(var(--sc-radius-3) + 2px);
+  --input-radius: var(--sc-radius-2);
+  --button-radius: var(--sc-radius-2);
+  --input-shadow: var(--sc-shadow-inset);
+  --input-shadow-hover: var(--sc-shadow-inset), 0 0 0 1px var(--sc-border-strong-c);
+  --shadow-s: var(--sc-shadow-1);
+  --shadow-l: var(--sc-shadow-2);
+
+  /* Chrome */
+  --titlebar-background: var(--sc-bg-soft);
+  --titlebar-background-focused: var(--sc-bg-soft);
+  --titlebar-border-color: var(--sc-border-c);
+  --ribbon-background: var(--sc-bg-soft);
+  --ribbon-background-collapsed: var(--sc-bg-soft);
+  --status-bar-background: var(--sc-bg-soft);
+  --status-bar-border-color: var(--sc-border-c);
+  --status-bar-text-color: var(--sc-text-subtle);
+  --divider-color: var(--sc-border-c);
+  --divider-color-hover: var(--sc-primary);
+  --tab-container-background: var(--sc-bg-soft);
+  --tab-outline-color: var(--sc-border-c);
+  --tab-divider-color: var(--sc-border-c);
+
+  /* Navigation (file explorer, outline, settings tabs) */
+  --nav-item-color: var(--sc-text-muted);
+  --nav-item-color-hover: var(--sc-hover-text);
+  --nav-item-background-hover: color-mix(in srgb, var(--sc-hover) 10%, transparent);
+  --nav-item-color-active: var(--sc-text);
+  --nav-item-background-active: var(--sc-primary-soft);
+  --nav-item-color-selected: var(--sc-text);
+  --nav-item-background-selected: color-mix(in srgb, var(--sc-primary) 12%, transparent);
+  --indentation-guide-color: var(--sc-border-c);
+  --indentation-guide-color-active: var(--sc-border-strong-c);
+
+  /* Inputs (Input / Checkbox / Native select) */
+  --checkbox-radius: var(--sc-radius-1);
+  --checkbox-color: var(--sc-primary);
+  --checkbox-color-hover: color-mix(in srgb, var(--sc-primary), white 14%);
+  --checkbox-border-color: var(--sc-border-strong-c);
+  --checkbox-border-color-hover: var(--sc-primary);
+  --checkbox-marker-color: var(--sc-on-accent);
+  --dropdown-background: var(--sc-field);
+  --dropdown-background-hover: var(--sc-surface-inset);
+
+  /* Modals */
+  --modal-background: var(--sc-surface-raised);
+  --modal-border-color: var(--sc-border-strong-c);
+  --modal-border-width: 1px;
+  --modal-radius: var(--sc-radius-3);
+  --prompt-border-color: var(--sc-border-strong-c);
+  --prompt-border-width: 1px;
+
+  /* Scroll area */
+  --scrollbar-bg: transparent;
+  --scrollbar-thumb-bg: color-mix(in srgb, var(--sc-primary) 30%, transparent);
+  --scrollbar-active-thumb-bg: color-mix(in srgb, var(--sc-warm) 55%, transparent);
+
+  /* Content */
+  --h1-weight: 700;
+  --h2-weight: 700;
+  --h3-weight: 700;
+  --h4-weight: 500;
+  --h5-weight: 500;
+  --h1-line-height: var(--sc-line-height-tight);
+  --h2-line-height: var(--sc-line-height-tight);
+  --h3-line-height: 1.2;
+  --h1-color: var(--sc-text);
+  --h2-color: var(--sc-text);
+  --h3-color: var(--sc-text);
+  --h4-color: var(--sc-text);
+  --h5-color: var(--sc-text-muted);
+  --h6-color: var(--sc-text-muted);
+  --inline-title-weight: 700;
+  --inline-title-color: var(--sc-text);
+  --bold-weight: 700;
+
+  --link-color: var(--sc-primary);
+  --link-color-hover: var(--sc-hover-text);
+  --link-external-color: var(--sc-secondary);
+  --link-external-color-hover: var(--sc-hover-text);
+  --link-unresolved-color: var(--sc-text-muted);
+  --link-unresolved-decoration-color: color-mix(in srgb, var(--sc-text-muted) 50%, transparent);
+
+  --blockquote-border-color: var(--sc-primary);
+  --blockquote-border-thickness: 2px;
+  --blockquote-color: var(--sc-text-muted);
+  --hr-color: var(--sc-border-c);
+  --hr-thickness: 1px;
+
+  --embed-background: color-mix(in srgb, var(--sc-panel) 2.5%, transparent);
+  --embed-border-left: 2px solid var(--sc-primary-soft);
+  --embed-border-start: 2px solid var(--sc-primary-soft);
+
+  /* MockConsole token colors */
+  --code-background: var(--sc-surface-inset);
+  --code-normal: var(--sc-text);
+  --code-comment: var(--sc-text-subtle);
+  --code-keyword: var(--sc-secondary);
+  --code-string: var(--sc-primary);
+  --code-function: var(--sc-text);
+  --code-value: var(--sc-warning);
+  --code-important: var(--sc-warning);
+  --code-property: var(--sc-secondary);
+  --code-tag: var(--sc-danger);
+  --code-operator: var(--sc-text-muted);
+  --code-punctuation: var(--sc-text-muted);
+  --code-radius: var(--sc-radius-2);
+
+  /* Graph view */
+  --graph-line: var(--sc-border-c);
+  --graph-node: var(--sc-text-muted);
+  --graph-node-unresolved: var(--sc-text-subtle);
+  --graph-node-focused: var(--sc-primary);
+  --graph-node-tag: var(--sc-secondary);
+  --graph-node-attachment: var(--sc-warning);
+  --graph-text: var(--sc-text);
+
+  /* ---------- Fonts: beat Appearance overrides ---------- */
+  &.sc-force-fonts {
+    --font-text: var(--sc-font-sans) !important;
+    --font-interface: var(--sc-font-sans) !important;
+    --font-monospace: var(--sc-font-mono) !important;
+  }
+
+  /* ---------- Typography extras ---------- */
+  &.sc-h6-kicker {
+    --h6-font: var(--sc-font-mono);
+    --h6-color: var(--sc-primary);
+    --h6-size: 0.8em;
+    --h6-weight: 500;
+  }
+
+  &.sc-h1-gradient :is(.markdown-rendered h1, .inline-title, .HyperMD-header-1 .cm-header-1) {
+    background: linear-gradient(90deg, var(--sc-text), var(--sc-primary), var(--sc-secondary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  &.sc-mono-statusbar .status-bar {
+    font-family: var(--sc-font-mono);
+    font-size: var(--sc-font-size-1);
+    letter-spacing: 0.02em;
+  }
+
+  /* ---------- Atmosphere: editor backdrop (docs <html> background) ---------- */
+  &.sc-backdrop .workspace-split.mod-root .workspace-leaf-content[data-type="markdown"] > .view-content {
+    background:
+      linear-gradient(color-mix(in srgb, var(--sc-primary) 2.5%, transparent) 1px, transparent 1px) 0 0 / 100% var(--sc-grid-size),
+      linear-gradient(90deg, color-mix(in srgb, var(--sc-primary) 4%, transparent) 1px, transparent 1px) 0 0 / calc(var(--sc-grid-size) * 4) 100%,
+      radial-gradient(circle at 74% 8%, color-mix(in srgb, var(--sc-primary) 20%, transparent), transparent 24rem),
+      radial-gradient(circle at 28% 14%, color-mix(in srgb, var(--sc-secondary) 18%, transparent), transparent 28rem),
+      var(--sc-bg);
+
+    & > * {
+      --background-primary: transparent;
+    }
+  }
+
+  /* ---------- Atmosphere: CRT scanline overlay (docs body::before) ---------- */
+  &.sc-scanlines::before {
+    background: repeating-linear-gradient(0deg,
+      rgba(255, 255, 255, 0.035) 0,
+      rgba(255, 255, 255, 0.035) 1px,
+      transparent 1px,
+      transparent 4px);
+    content: "";
+    inset: 0;
+    opacity: var(--sc-scanline-opacity);
+    pointer-events: none;
+    position: fixed;
+    z-index: 1000;
+  }
+
+  /* ---------- Card / GlassPanel / Dialog / Dropdown / Popover / Toast ---------- */
+  &.sc-mod-glass {
+    & :is(.modal, .prompt, .menu, .popover.hover-popover, .suggestion-container, .notice) {
+      -webkit-backdrop-filter: blur(var(--sc-glass-blur)) saturate(130%);
+      backdrop-filter: blur(var(--sc-glass-blur)) saturate(130%);
+      background: var(--sc-top-glow), var(--sc-scan-surface), var(--sc-surface-raised);
+      border: var(--sc-border-strong);
+      border-radius: var(--sc-radius-3);
+      box-shadow: var(--sc-shadow-2), var(--sc-shadow-inset);
+      color: var(--sc-text);
+    }
+
+    & .modal-bg {
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      background-color: var(--sc-overlay);
+    }
+
+    & .modal-title {
+      font-size: var(--sc-font-size-5);
+      line-height: var(--sc-line-height-tight);
+    }
+
+    /* Dropdown item highlight: warm tint + warning text */
+    & :is(.menu-item, .suggestion-item):not(.is-disabled):not(.is-label):is(:hover, .selected, .is-selected) {
+      background-color: color-mix(in srgb, var(--sc-hover) 16%, transparent);
+      color: var(--sc-hover-text);
+
+      & .menu-item-icon,
+      & .suggestion-flair {
+        color: var(--sc-hover-text);
+      }
+    }
+
+    & :is(.menu-item, .suggestion-item) {
+      border-radius: var(--sc-radius-1);
+    }
+
+    & .menu-item.is-label {
+      color: var(--sc-text-muted);
+      font-family: var(--sc-font-mono);
+      font-size: var(--sc-font-size-2);
+    }
+
+    & .menu-separator {
+      border-color: var(--sc-border-c);
+    }
+
+    /* Tooltip */
+    & .tooltip {
+      background-color: var(--background-modifier-message);
+      border: var(--sc-border);
+      border-radius: var(--sc-radius-1);
+      box-shadow: var(--sc-shadow-1);
+      color: var(--sc-text);
+      font-family: var(--sc-font-mono);
+      font-size: var(--sc-font-size-1);
+    }
+  }
+
+  /* ---------- Button ---------- */
+  &.sc-mod-buttons {
+    & button:not(.clickable-icon, .copy-code-button) {
+      background: color-mix(in srgb, var(--sc-panel) 5.5%, transparent);
+      border: var(--sc-border-strong);
+      border-radius: var(--sc-radius-2);
+      box-shadow: var(--sc-shadow-inset);
+      color: var(--sc-text);
+      font-weight: 500;
+      transition:
+        background-color var(--sc-fast) var(--sc-ease),
+        border-color var(--sc-fast) var(--sc-ease),
+        color var(--sc-fast) var(--sc-ease),
+        box-shadow var(--sc-fast) var(--sc-ease);
+
+      &:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--sc-hover) 12%, transparent);
+        border-color: color-mix(in srgb, var(--sc-hover) 55%, transparent);
+        color: var(--sc-hover-text);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--sc-focus);
+        outline-offset: 2px;
+      }
+    }
+
+    & button.mod-cta:not(.clickable-icon) {
+      background: var(--sc-primary);
+      border-color: var(--sc-primary);
+      color: var(--sc-on-accent);
+
+      &:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--sc-primary), white 14%);
+        border-color: var(--sc-primary);
+        box-shadow: var(--sc-shadow-inset), 0 0 0 1px color-mix(in srgb, var(--sc-primary) 28%, transparent);
+        color: var(--sc-on-accent);
+      }
+    }
+
+    & button.mod-warning:not(.clickable-icon) {
+      background: color-mix(in srgb, var(--sc-danger), #080807 56%);
+      border-color: color-mix(in srgb, var(--sc-danger), transparent 28%);
+      color: #fff3ee;
+
+      &:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--sc-danger), #080807 44%);
+        color: #fff3ee;
+      }
+    }
+  }
+
+  /* ---------- Switch ---------- */
+  &.sc-mod-switches .checkbox-container {
+    background-color: color-mix(in srgb, var(--sc-inset-color) 72%, transparent);
+    box-shadow: var(--sc-shadow-inset), inset 0 0 0 1px var(--sc-border-c);
+    transition: background-color var(--sc-fast) var(--sc-ease), box-shadow var(--sc-fast) var(--sc-ease);
+
+    &::after {
+      background-color: var(--sc-text-muted);
+    }
+
+    &.is-enabled {
+      background-color: color-mix(in srgb, var(--sc-primary), #06100c 46%);
+      box-shadow: var(--sc-shadow-inset), inset 0 0 0 1px color-mix(in srgb, var(--sc-primary) 74%, transparent);
+
+      &::after {
+        background-color: #f4fff5;
+      }
+    }
+  }
+
+  /* ---------- Tabs ---------- */
+  &.sc-mod-tabs {
+    --tab-background-active: transparent;
+    --tab-text-color: var(--sc-text-subtle);
+    --tab-text-color-focused: var(--sc-text-muted);
+    --tab-text-color-active: var(--sc-text-muted);
+    --tab-text-color-focused-active: var(--sc-text);
+    --tab-text-color-focused-active-current: var(--sc-text);
+    --tab-radius-active: 0;
+    --tab-curve: 0px;
+
+    & .workspace-tab-header-container {
+      border-bottom: var(--sc-border);
+    }
+
+    & .workspace-tab-header.is-active {
+      box-shadow: inset 0 -1px 0 var(--sc-primary);
+    }
+
+    & .mod-root .workspace-tab-header.is-active .workspace-tab-header-inner-title {
+      color: var(--sc-text);
+    }
+  }
+
+  /* ---------- Active file / settings tab marker ---------- */
+  &.sc-mod-nav :is(.tree-item-self.is-active, .nav-file-title.is-active, .vertical-tab-nav-item.is-active) {
+    box-shadow: inset 2px 0 0 var(--sc-primary);
+  }
+
+  /* ---------- Badge (tags) ---------- */
+  &.sc-mod-tags {
+    --tag-background: var(--sc-secondary-soft);
+    --tag-background-hover: color-mix(in srgb, var(--sc-hover) 14%, transparent);
+    --tag-border-color: color-mix(in srgb, var(--sc-secondary), transparent 42%);
+    --tag-border-color-hover: color-mix(in srgb, var(--sc-hover) 55%, transparent);
+    --tag-border-width: 1px;
+    --tag-color: color-mix(in srgb, var(--sc-secondary), white 62%);
+    --tag-color-hover: var(--sc-hover-text);
+    --tag-radius: var(--sc-radius-1);
+    --tag-size: 0.75em;
+    --tag-weight: 500;
+    --tag-padding-x: 0.5em;
+    --tag-padding-y: 0.15em;
+
+    & :is(.tag, .cm-hashtag) {
+      font-family: var(--sc-font-mono);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+  }
+
+  /* ---------- Alert (callouts) ---------- */
+  &.sc-mod-callouts {
+    --callout-radius: var(--sc-radius-2);
+    --callout-blend-mode: normal;
+    --callout-title-weight: 500;
+
+    & .callout {
+      background:
+        repeating-linear-gradient(180deg,
+          rgba(var(--callout-color), 0.06) 0,
+          rgba(var(--callout-color), 0.06) 1px,
+          transparent 1px,
+          transparent 6px),
+        color-mix(in srgb, var(--sc-panel) 4%, transparent);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      border: var(--sc-border);
+      overflow: hidden;
+      position: relative;
+
+      /* Bottom data line: lit segment over dim dashes */
+      &::after {
+        background:
+          linear-gradient(90deg, transparent, rgba(var(--callout-color), 0.95) 42%, rgba(var(--callout-color), 0.95) 58%, transparent),
+          repeating-linear-gradient(90deg, rgba(var(--callout-color), 0.3) 0, rgba(var(--callout-color), 0.3) 6px, transparent 6px, transparent 14px);
+        background-position: 50% 0, 0 0;
+        background-repeat: no-repeat, repeat-x;
+        background-size: 26% 100%, 100% 100%;
+        bottom: 0;
+        content: "";
+        height: 2px;
+        left: 0;
+        pointer-events: none;
+        position: absolute;
+        right: 0;
+      }
+    }
+
+    &.sc-callout-motion .callout::after {
+      animation: sc-alert-line 3.6s linear infinite;
+    }
+
+    &.sc-callout-motion .callout:is([data-callout="danger"], [data-callout="error"], [data-callout="bug"], [data-callout="failure"], [data-callout="fail"], [data-callout="missing"])::after {
+      animation-duration: 2.1s;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      & .callout::after {
+        animation: none !important;
+      }
+    }
+  }
+
+  /* ---------- MockConsole (code blocks, reading view) ---------- */
+  &.sc-mod-code .markdown-rendered pre {
+    background: var(--sc-top-glow), var(--sc-scan-surface), var(--sc-surface);
+    border: var(--sc-border);
+    border-radius: var(--sc-radius-3);
+    box-shadow: var(--sc-shadow-1), var(--sc-shadow-inset);
+    padding-top: calc(2.25rem + var(--size-4-3, 12px));
+    position: relative;
+
+    /* Console bar: status dot + language (from the pre's class) */
+    &::before {
+      background: radial-gradient(circle at 14px 50%, var(--sc-primary) 0 3.5px, transparent 4px);
+      border-bottom: var(--sc-border);
+      color: var(--sc-text-muted);
+      content: attr(class);
+      font-family: var(--sc-font-mono);
+      font-size: var(--sc-font-size-2);
+      height: 2.25rem;
+      left: 0;
+      line-height: 2.25rem;
+      overflow: hidden;
+      padding: 0 3rem 0 28px;
+      position: absolute;
+      right: 0;
+      text-overflow: ellipsis;
+      top: 0;
+      white-space: nowrap;
+    }
+
+    & .copy-code-button {
+      font-family: var(--sc-font-mono);
+      font-size: var(--sc-font-size-1);
+    }
+  }
+
+  /* ---------- Table ---------- */
+  &.sc-mod-tables {
+    --table-border-color: var(--sc-border-c);
+    --table-header-background: color-mix(in srgb, var(--sc-panel) 2.5%, transparent);
+    --table-header-background-hover: color-mix(in srgb, var(--sc-panel) 5%, transparent);
+    --table-header-color: var(--sc-text-subtle);
+    --table-header-font: var(--sc-font-mono);
+    --table-header-size: var(--sc-font-size-1);
+    --table-header-weight: 500;
+    --table-text-color: var(--sc-text-muted);
+    --table-row-background-hover: color-mix(in srgb, var(--sc-warm) 8%, transparent);
+    --table-row-alt-background: transparent;
+
+    & :is(.markdown-rendered, .table-wrapper) :is(th, td) {
+      border-left-color: transparent;
+      border-right-color: transparent;
+    }
+
+    & :is(.markdown-rendered, .table-wrapper) th {
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    & :is(.markdown-rendered, .table-wrapper) tr:hover td {
+      color: var(--sc-text);
+    }
+  }
+
+  /* ---------- Properties as glass panel ---------- */
+  &.sc-mod-properties {
+    --metadata-background: var(--sc-surface);
+    --metadata-border-color: var(--sc-border-c);
+    --metadata-border-width: 1px;
+    --metadata-border-radius: var(--sc-radius-3);
+    --metadata-padding: var(--size-4-2, 8px) var(--size-4-3, 12px);
+    --metadata-label-font: var(--sc-font-mono);
+    --metadata-label-font-size: var(--sc-font-size-1);
+    --metadata-label-text-color: var(--sc-text-subtle);
+
+    & .metadata-property-key-input {
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+  }
+
+  /* ---------- Kbd / Separator / Progress ---------- */
+  &.sc-mod-misc {
+    & kbd {
+      background: color-mix(in srgb, var(--sc-panel) 6%, transparent);
+      border: var(--sc-border);
+      border-bottom-width: 2px;
+      border-radius: var(--sc-radius-1);
+      color: var(--sc-text-muted);
+      font-family: var(--sc-font-mono);
+      font-size: 0.75em;
+      padding: 0.1em 0.4em;
+    }
+
+    & progress {
+      -webkit-appearance: none;
+      appearance: none;
+      background: color-mix(in srgb, var(--sc-panel) 10%, transparent);
+      border: var(--sc-border);
+      border-radius: 999px;
+      box-shadow: var(--sc-shadow-inset);
+      height: 0.5rem;
+      overflow: hidden;
+
+      &::-webkit-progress-bar {
+        background: transparent;
+      }
+
+      &::-webkit-progress-value {
+        background: var(--sc-primary);
+        border-radius: 999px;
+      }
+    }
+  }
+}
